@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
+
+    <title>Шёпот</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+</head>
+
+
+<body>
+
+<div id="app">
+
+
+    <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
+
+    <div class="top-bar">
+
+        <button
+            id="back-button"
+            class="bottom-button"
+            type="button"
+            style="display: none;"
+        >
+            ← Назад
+        </button>
+
+
+        <div class="chapter-label">
+            🕯 ГЛАВА I
+        </div>
+
+
+        <div class="chapter-title">
+            НАЧАЛО
+        </div>
+
+    </div>
+
+
+
+    <!-- ИСТОРИЯ -->
+
+    <main id="story">
+
+        <div id="story-content">
+
+            <div class="intro">
+
+                <div class="scene-title">
+                    🕯
+                </div>
+
+
+                <h1>
+                    ГЛАВА I
+                </h1>
+
+
+                <h2>
+                    НАЧАЛО
+                </h2>
+
+
+                <div class="divider"></div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ВАРИАНТЫ ВЫБОРА -->
+
+        <div
+            id="choices"
+            class="choices"
+        ></div>
+
+    </main>
+
+
+
+    <!-- НИЖНЯЯ ПАНЕЛЬ -->
+
+    <div class="bottom-bar">
+
+        <button
+            id="exit-button"
+            class="bottom-button"
+            type="button"
+        >
+            Закрыть
+        </button>
+
+    </div>
+
+
+</div>
+
+
+
+<script src="/static/app.js"></script>
+
+</body>
+
+</html>
