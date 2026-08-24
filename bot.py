@@ -1,0 +1,228 @@
+import asyncio
+import logging
+from aiogram import Bot, Dispatcher, F, types
+from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+from config import BOT_TOKEN
+from database import init_db, get_user, save_user_profile, update_sound_setting
+
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
+
+class ProfileForm(StatesGroup):
+    waiting_for_name = State()
+    waiting_for_gender = State()
+    waiting_for_appearance = State()
+    waiting_for_personality = State()
+    waiting_for_photo = State()
+
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message):
+    welcome_text = (
+        "† ✞ ✦ <b>ШЁПОТ</b> ✦ ✞ †\n\n"
+        "<i>Ну что, душа моя.\n"
+        "Выбирай свой путь.)</i>\n\n"
+        "★ ∞ <i>Погружение во тьму начинается...</i>"
+    )
+    
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="† Хорошо †", callback_data="start_good")]
+        ]
+    )
+    
+    await message.answer(welcome_text, parse_mode="HTML", reply_markup=keyboard)
+
+@dp.callback_query(F.data == "start_good")
+async def process_good(callback: types.CallbackQuery):
+    await callback.message.edit_text(
+        "★ <b>Выбор квеста:</b> ★\n\n"
+        "† Квест №1: Пробуждение (Доступен) ✦\n"
+        "🔒 Квест №2: (Закрыто)",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="▶️ Квест 1", callback_data="quest_1_menu")],
+                [InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_start")]
+            ]
+        )
+    )
+    await callback.answer()
+
+@dp.callback_query(F.data == "quest_1_menu")
+async def quest_1_menu(callback: types.CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
+    user = await get_user(user_id)
+    
+    if not user or not user["name"] or not user["gender"]:
+        await callback.message.edit_text(
+            "<b>⚠️ Для начала игры нужно заполнить твою анкету.</b>\n\n"
+            "Как тебя зовут?",
+            parse_mode="HTML"
+        )
+        await state.set_state(ProfileForm.waiting_for_name)
+    else:
+        await callback.message.edit_text(
+            "<b>Квест №1: Пробуждение</b>\n\n"
+            "Выберите нужное действие:",
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="📖 Как играть", callback_data="how_to_play")],
+                    [InlineKeyboardButton(text="👥 Ознакомиться с персонажами", callback_data="characters")],
+                    [InlineKeyboardButton(text="▶️ Продолжить / Запустить", callback_data="launch_webapp")],
+                    [InlineKeyboardButton(text="🔙 К выбору квестов", callback_data="start_good")]
+                ]
+            )
+        )
+    await callback.answer()
+
+@dp.message(ProfileForm.waiting_for_name)
+async def process_name(message: types.Message, state: FSMContext):
+    await state.update_data(name=message.text)
+    
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Женский ♀", callback_data="gender_female"),
+                InlineKeyboardButton(text="Мужской ♂", callback_data="gender_male"),
+                InlineKeyboardButton(text="Другой ∞", callback_data="gender_other")
+            ]
+        ]
+    )
+    
+    await message.answer(
+        "✞ <b>Выбери свой пол:</b> ✞",
+        parse_mode="HTML",
+        reply_markup=keyboard
+    )
+    await state.set_state(ProfileForm.waiting_for_gender)
+
+@dp.callback_query(F.data.startswith("gender_"))
+async def process_gender(callback: types.CallbackQuery, state: FSMContext):
+    gender_map = {
+        "gender_female": "Женский",
+        "gender_male": "Мужской",
+        "gender_other": "Другой"
+    }
+    selected_gender = gender_map.get(callback.data, "Не указан")
+    await state.update_data(gender=selected_gender)
+    
+    await callback.message.edit_text(
+        "<b>★ 🪞 Опиши свою внешность:</b>\n"
+        "<i>(Отправь текст описания в ответном сообщении)</i>",
+        parse_mode="HTML"
+    )
+    await state.set_state(ProfileForm.waiting_for_appearance)
+    await callback.answer()
+
+@dp.message(ProfileForm.waiting_for_appearance)
+async def process_appearance(message: types.Message, state: FSMContext):
+    await state.update_data(appearance=message.text)
+    
+    await message.answer(
+        "<b>★ 🖤 Опиши свой характер:</b>\n"
+        "<i>Какая ты тень в этом заброшенном мире?</i>",
+        parse_mode="HTML"
+    )
+    await state.set_state(ProfileForm.waiting_for_personality)
+
+@dp.message(ProfileForm.waiting_for_personality)
+async def process_personality(message: types.Message, state: FSMContext):
+    await state.update_data(personality=message.text)
+    
+    await message.answer(
+        "<b>★ 👁️ Отправь фотографию для своего профиля:</b>\n"
+        "<i>Это лицо увидят во тьме...</i>",
+        parse_mode="HTML"
+    )
+    await state.set_state(ProfileForm.waiting_for_photo)
+
+@dp.message(ProfileForm.waiting_for_photo, F.photo)
+async def process_photo(message: types.Message, state: FSMContext):
+    photo_id = message.photo[-1].file_id
+    data = await state.get_data()
+    
+    user_id = message.from_user.id
+    await save_user_profile(
+        user_id,
+        data.get("name"),
+        data.get("gender"),
+        data.get("appearance"),
+        data.get("personality"),
+        photo_id
+    )
+    await state.clear()
+    
+    success_text = (
+        "† <b>Твой образ во тьме запечатлен.</b> †\n\n"
+        f"👤 <b>Имя:</b> {data.get('name')}\n"
+        f"⚧ <b>Пол:</b> {data.get('gender')}\n"
+        f"🪞 <b>Внешность:</b> {data.get('appearance')}\n"
+        f"🖤 <b>Характер:</b> {data.get('personality')}\n\n"
+        "<i>Двери квеста открываются...</i> 🚪🩸"
+    )
+    
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="★ Перейти к Квесту №1 ★", callback_data="quest_1_menu")]
+        ]
+    )
+    
+    await message.answer_photo(photo=photo_id, caption=success_text, parse_mode="HTML", reply_markup=keyboard)
+
+@dp.message(ProfileForm.waiting_for_photo)
+async def process_photo_invalid(message: types.Message):
+    await message.answer("⚠️ <b>Пожалуйста, отправь именно фотографию!</b>", parse_mode="HTML")
+
+@dp.message(Command("settings"))
+async def cmd_settings(message: types.Message):
+    user = await get_user(message.from_user.id)
+    sound_status = "🔊 Включены" if (not user or user["sound_enabled"] == 1) else "🔇 Выключены"
+    
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=f"Звук в приложении: {sound_status}", callback_data="toggle_sound")],
+            [InlineKeyboardButton(text="🔙 Закрыть", callback_data="close_settings")]
+        ]
+    )
+    
+    await message.answer("<b>⚙️ Настройки бота и мини-приложения</b>", parse_mode="HTML", reply_markup=keyboard)
+
+@dp.callback_query(F.data == "toggle_sound")
+async def toggle_sound_callback(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    user = await get_user(user_id)
+    current_sound = user["sound_enabled"] if user else 1
+    new_sound = 0 if current_sound == 1 else 1
+    
+    if not user:
+        await save_user_profile(user_id, None, None, None, None, None)
+    
+    await update_sound_setting(user_id, new_sound)
+    
+    sound_status = "🔊 Включены" if new_sound == 1 else "🔇 Выключены"
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=f"Звук в приложении: {sound_status}", callback_data="toggle_sound")],
+            [InlineKeyboardButton(text="🔙 Закрыть", callback_data="close_settings")]
+        ]
+    )
+    
+    await callback.message.edit_reply_markup(reply_markup=keyboard)
+    await callback.answer(f"Звук {'включен' if new_sound == 1 else 'выключен'}")
+
+@dp.callback_query(F.data == "close_settings")
+async def close_settings(callback: types.CallbackQuery):
+    await callback.message.delete()
+
+async def main():
+    await init_db()
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    asyncio.run(main())
