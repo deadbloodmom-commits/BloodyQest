@@ -8,6 +8,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from config import BOT_TOKEN
 from database import init_db, get_user, save_user_profile, update_sound_setting
+from quests.quest_1.data import QUEST_1_INFO, CHARACTERS_QUEST_1
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -51,13 +52,12 @@ async def cmd_start(message: types.Message):
 async def process_good(callback: types.CallbackQuery):
     await callback.message.edit_text(
         "<b>🕯 КВЕСТЫ</b>\n\n"
-"Перед тобой — несколько историй.\n"
-"У каждой свой путь, свои тайны и то, что лучше было никогда не тревожить.\n\n"
-"Выбери ту, которая первой привлекла твоё внимание.\n"
-"Но помни: истории здесь не заканчиваются там, где заканчивается текст.\n\n"
-"Иногда выбор всего одной кнопки меняет всё.\n\n"
-"Какую историю ты готов открыть?"
-        "Выбери историю, в которую хочешь войти.\n\n"
+        "Перед тобой — несколько историй.\n"
+        "У каждой свой путь, свои тайны и то, что лучше было никогда не тревожить.\n\n"
+        "Выбери ту, которая первой привлекла твоё внимание.\n"
+        "Но помни: истории здесь не заканчиваются там, где заканчивается текст.\n\n"
+        "Иногда выбор всего одной кнопки меняет всё.\n\n"
+        "Какую историю ты готов открыть?\n\n"
         "<i>Некоторые истории пока молчат. "
         "Но однажды они обязательно заговорят.</i>",
         parse_mode="HTML",
@@ -75,33 +75,115 @@ async def quest_1_menu(callback: types.CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
     user = await get_user(user_id)
     
+    # Если пользователь еще не заполнял профиль
     if not user or not user["name"] or not user["gender"]:
         await callback.message.edit_text(
-
-        "<b>Ты ознакомился(ась) со всеми персонажами.</b>\n\n"
-        "Теперь пришло время познакомиться с тобой.\n\n"
-        "<i>В этой истории у тебя будет своё место.</i>\n\n"
-        "<b>🩸Как тебя будут называть?</b>\n\n"
-        "Напиши имя, которым ты хочешь, "
-        "чтобы тебя называли во время прохождения.",
+            "<b>Ты еще не знаком(а) с этим миром.</b>\n\n"
+            "Пришло время оставить свой след.\n\n"
+            "<i>В этой истории у тебя будет своё место.</i>\n\n"
+            "<b>🩸 Как тебя будут называть?</b>\n\n"
+            "Напиши имя, которым ты хочешь, "
+            "чтобы тебя называли во время прохождения.",
             parse_mode="HTML"
         )
         await state.set_state(ProfileForm.waiting_for_name)
     else:
+        # Если профиль есть — показываем полноценное меню первого квеста
         await callback.message.edit_text(
-            "<b>Квест №1: Пробуждение</b>\n\n"
+            f"<b>{QUEST_1_INFO['title']}</b>\n\n"
+            f"<i>{QUEST_1_INFO['description']}</i>\n\n"
             "Выберите нужное действие:",
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [InlineKeyboardButton(text="📖 Как играть", callback_data="how_to_play")],
-                    [InlineKeyboardButton(text="👥 Ознакомиться с персонажами", callback_data="characters")],
-                    [InlineKeyboardButton(text="▶️ Продолжить / Запустить", callback_data="launch_webapp")],
+                    [InlineKeyboardButton(text="📖 Как играть", callback_data="q1_how_to_play")],
+                    [InlineKeyboardButton(text="👥 Ознакомиться с персонажами", callback_data="q1_char_0")],
+                    [InlineKeyboardButton(text="▶️ Продолжить / Запустить", callback_data="q1_launch")],
                     [InlineKeyboardButton(text="🔙 К выбору квестов", callback_data="start_good")]
                 ]
             )
         )
     await callback.answer()
+
+# Кнопка «Как играть»
+@dp.callback_query(F.data == "q1_how_to_play")
+async def q1_how_to_play(callback: types.CallbackQuery):
+    await callback.message.edit_text(
+        QUEST_1_INFO["how_to_play"],
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="🔙 Назад в меню квеста", callback_data="quest_1_menu")]
+            ]
+        )
+    )
+    await callback.answer()
+
+# Ознакомление с персонажами по очереди (индекс 0 — первый персонаж)
+@dp.callback_query(F.data.startswith("q1_char_"))
+async def show_character(callback: types.CallbackQuery):
+    index = int(callback.data.split("_")[2])
+    
+    if index < len(CHARACTERS_QUEST_1):
+        char = CHARACTERS_QUEST_1[index]
+        text = (
+            f"🦇 <b>Персонаж {index + 1} из {len(CHARACTERS_QUEST_1)}</b>\n\n"
+            f"👤 <b>Имя:</b> {char['name']}\n"
+            f"🛡️ <b>Роль:</b> {char['role']}\n\n"
+            f"<i>{char['bio']}</i>"
+        )
+        
+        # Если есть еще персонажи — ведем на следующего, если кончились — на дисклеймер
+        next_callback = f"q1_char_{index + 1}" if index + 1 < len(CHARACTERS_QUEST_1) else "q1_disclaimer"
+        
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="▶️ Продолжить", callback_data=next_callback)],
+                [InlineKeyboardButton(text="🔙 Назад", callback_data="quest_1_menu")]
+            ]
+        )
+        
+        await callback.message.edit_text(text, parse_mode="HTML", reply_markup=keyboard)
+    await callback.answer()
+
+# Дисклеймер (Предупреждение) после всех персонажей — обязательный шаг
+@dp.callback_query(F.data == "q1_disclaimer")
+async def show_disclaimer(callback: types.CallbackQuery):
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🩸 Идти дальше", callback_data="q1_launch")],
+            [InlineKeyboardButton(text="🔙 К персонажам", callback_data="q1_char_0")]
+        ]
+    )
+    
+    await callback.message.edit_text(
+        QUEST_1_INFO["disclaimer"],
+        parse_mode="HTML",
+        reply_markup=keyboard
+    )
+    await callback.answer()
+
+# Запуск / переход к мини-приложению
+@dp.callback_query(F.data == "q1_launch")
+async def launch_quest_webapp(callback: types.CallbackQuery):
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🖤 Открыть мини-приложение квеста", callback_data="open_app_stub")],
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="quest_1_menu")]
+        ]
+    )
+    
+    await callback.message.edit_text(
+        "<b>⛓️ Врата открыты...</b>\n\n"
+        "Нажмите кнопку ниже, чтобы войти в мини-приложение и начать погружение.",
+        parse_mode="HTML",
+        reply_markup=keyboard
+    )
+    await callback.answer()
+
+@dp.callback_query(F.data == "open_app_stub")
+async def open_app_stub(callback: types.CallbackQuery):
+    await callback.answer("Мини-приложение скоро будет подключено! 🕯️", show_alert=True)
 
 @dp.message(ProfileForm.waiting_for_name)
 async def process_name(message: types.Message, state: FSMContext):
@@ -119,7 +201,7 @@ async def process_name(message: types.Message, state: FSMContext):
     
     await message.answer(
         "✞ Выбери свой пол, вариант, который будет использовать "
-        "бот во время истории.✞",
+        "бот во время истории. ✞",
         parse_mode="HTML",
         reply_markup=keyboard
     )
@@ -136,7 +218,7 @@ async def process_gender(callback: types.CallbackQuery, state: FSMContext):
     await state.update_data(gender=selected_gender)
     
     await callback.message.edit_text(
-        "<b>🩸Теперь расскажи о своей внешности.</b>\n\n"
+        "<b>🩸 Теперь расскажи о своей внешности.</b>\n\n"
         "Опиши себя так, как хочешь выглядеть "
         "внутри этой истории.\n\n"
         "<i>Например: волосы, глаза, одежда "
@@ -151,7 +233,7 @@ async def process_appearance(message: types.Message, state: FSMContext):
     await state.update_data(appearance=message.text)
     
     await message.answer(
-        "<b>🩸А теперь — характер.</b>\n\n"
+        "<b>🩸 А теперь — характер.</b>\n\n"
         "Каким человеком ты хочешь быть "
         "в этой истории?\n\n"
         "<i>Спокойным, осторожным, смелым, "
