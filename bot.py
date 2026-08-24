@@ -160,7 +160,7 @@ async def show_disclaimer(callback: types.CallbackQuery):
 @dp.callback_query(F.data == "q1_launch")
 async def launch_quest_webapp(callback: types.CallbackQuery):
     # Ссылка на ваше мини-приложение на Vercel
-    webapp_url = "https://8oiz3DfMdyhT2i1CsVRYYAhffkVf.vercel.app"
+    webapp_url = "https://https://vercel.com/deadbloodmom-commits/web/8oiz3DfMdyhT2i1CsVRYYAhffkVf"
     
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
