@@ -4,7 +4,7 @@ from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 
 from config import BOT_TOKEN
 from database import init_db, get_user, save_user_profile, update_sound_setting
@@ -75,7 +75,6 @@ async def quest_1_menu(callback: types.CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
     user = await get_user(user_id)
     
-    # Если пользователь еще не заполнял профиль
     if not user or not user["name"] or not user["gender"]:
         await callback.message.edit_text(
             "<b>Ты еще не знаком(а) с этим миром.</b>\n\n"
@@ -88,7 +87,6 @@ async def quest_1_menu(callback: types.CallbackQuery, state: FSMContext):
         )
         await state.set_state(ProfileForm.waiting_for_name)
     else:
-        # Если профиль есть — показываем полноценное меню первого квеста
         await callback.message.edit_text(
             f"<b>{QUEST_1_INFO['title']}</b>\n\n"
             f"<i>{QUEST_1_INFO['description']}</i>\n\n"
@@ -98,14 +96,13 @@ async def quest_1_menu(callback: types.CallbackQuery, state: FSMContext):
                 inline_keyboard=[
                     [InlineKeyboardButton(text="📖 Как играть", callback_data="q1_how_to_play")],
                     [InlineKeyboardButton(text="👥 Ознакомиться с персонажами", callback_data="q1_char_0")],
-                    [InlineKeyboardButton(text="→ продолжить", callback_data="q1_launch")],
+                    [InlineKeyboardButton(text="▶️ Продолжить / Запустить", callback_data="q1_launch")],
                     [InlineKeyboardButton(text="🔙 К выбору квестов", callback_data="start_good")]
                 ]
             )
         )
     await callback.answer()
 
-# Кнопка «Как играть»
 @dp.callback_query(F.data == "q1_how_to_play")
 async def q1_how_to_play(callback: types.CallbackQuery):
     await callback.message.edit_text(
@@ -119,7 +116,6 @@ async def q1_how_to_play(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-# Ознакомление с персонажами по очереди (индекс 0 — первый персонаж)
 @dp.callback_query(F.data.startswith("q1_char_"))
 async def show_character(callback: types.CallbackQuery):
     index = int(callback.data.split("_")[2])
@@ -133,7 +129,6 @@ async def show_character(callback: types.CallbackQuery):
             f"<i>{char['bio']}</i>"
         )
         
-        # Если есть еще персонажи — ведем на следующего, если кончились — на дисклеймер
         next_callback = f"q1_char_{index + 1}" if index + 1 < len(CHARACTERS_QUEST_1) else "q1_disclaimer"
         
         keyboard = InlineKeyboardMarkup(
@@ -146,7 +141,6 @@ async def show_character(callback: types.CallbackQuery):
         await callback.message.edit_text(text, parse_mode="HTML", reply_markup=keyboard)
     await callback.answer()
 
-# Дисклеймер (Предупреждение) после всех персонажей — обязательный шаг
 @dp.callback_query(F.data == "q1_disclaimer")
 async def show_disclaimer(callback: types.CallbackQuery):
     keyboard = InlineKeyboardMarkup(
@@ -163,12 +157,19 @@ async def show_disclaimer(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-# Запуск / переход к мини-приложению
 @dp.callback_query(F.data == "q1_launch")
 async def launch_quest_webapp(callback: types.CallbackQuery):
+    # Ссылка на ваше мини-приложение на Vercel
+    webapp_url = "https://8oiz3DfMdyhT2i1CsVRYYAhffkVf.vercel.app"
+    
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🖤 Открыть мини-приложение квеста", callback_data="open_app_stub")],
+            [
+                InlineKeyboardButton(
+                    text="🖤 Открыть мини-приложение квеста", 
+                    web_app=WebAppInfo(url=webapp_url)
+                )
+            ],
             [InlineKeyboardButton(text="🔙 Назад", callback_data="quest_1_menu")]
         ]
     )
@@ -180,10 +181,6 @@ async def launch_quest_webapp(callback: types.CallbackQuery):
         reply_markup=keyboard
     )
     await callback.answer()
-
-@dp.callback_query(F.data == "open_app_stub")
-async def open_app_stub(callback: types.CallbackQuery):
-    await callback.answer("Мини-приложение скоро будет подключено! 🕯️", show_alert=True)
 
 @dp.message(ProfileForm.waiting_for_name)
 async def process_name(message: types.Message, state: FSMContext):

@@ -1,135 +1,165 @@
-/* Мрачная цветовая гамма: от черного до бордового и ярко-красного */
-:root {
-    --bg-color: #0b0507;
-    --chat-bg: #14070b;
-    --message-bg: #220a10;
-    --accent-red: #8b0000;
-    --bright-red: #ff1a1a;
-    --text-color: #e0d1d1;
-    --text-muted: #9c8484;
-}
-
-* {
-    box-sizing: border-box;
+body {
+    background-color: #0b0202;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 0;
-}
-
-body {
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
-    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     height: 100vh;
-    overflow: hidden;
 }
 
-.app-container {
+.chat-container {
+    width: 100%;
+    max-width: 480px;
+    height: 100vh;
+    background-color: #120505;
     display: flex;
     flex-direction: column;
-    height: 100%;
-    max-width: 600px;
-    margin: 0 auto;
-    width: 100%;
-    border-left: 1px solid var(--accent-red);
-    border-right: 1px solid var(--accent-red);
+    border-left: 1px solid #3d0a0a;
+    border-right: 1px solid #3d0a0a;
+    box-shadow: 0 0 20px rgba(139, 0, 0, 0.3);
 }
 
 .chat-header {
-    background-color: var(--chat-bg);
-    border-bottom: 2px solid var(--accent-red);
-    padding: 12px;
+    background-color: #1a0808;
+    padding: 15px;
     text-align: center;
+    border-bottom: 2px solid #570c0c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    background-color: #ff3333;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #ff0000;
 }
 
 .chat-header h2 {
+    margin: 0;
     font-size: 16px;
-    color: var(--bright-red);
+    color: #ff4d4d;
     letter-spacing: 1px;
 }
 
 .chat-messages {
     flex: 1;
-    overflow-y: auto;
     padding: 15px;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    background: radial-gradient(circle at center, #18080c 0%, #0b0507 100%);
+    gap: 12px;
 }
 
-/* Стили отдельного сообщения (всегда слева, с аватаркой и никнеймом) */
-.message-wrapper {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
+/* Обычное сообщение персонажа (без иконок впереди) */
+.message {
+    background-color: #1f0c0c;
+    padding: 12px 15px;
+    border-radius: 8px;
     max-width: 85%;
-}
-
-.avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 1px solid var(--bright-red);
-    object-fit: cover;
-    background-color: #2b0c14;
-    flex-shrink: 0;
-}
-
-.message-content {
-    display: flex;
-    flex-direction: column;
-}
-
-.sender-name {
-    font-size: 12px;
-    color: var(--bright-red);
-    margin-bottom: 3px;
-    font-weight: bold;
-}
-
-.message-bubble {
-    background-color: var(--message-bg);
-    border: 1px solid #3d101d;
-    padding: 10px 14px;
-    border-radius: 4px 12px 12px 12px;
+    border-left: 3px solid #751010;
     font-size: 14px;
     line-height: 1.4;
-    color: var(--text-color);
-    box-shadow: 0 4px 10px rgba(139, 0, 0, 0.2);
 }
 
-/* Действия выделяются жирным шрифтом и спец-оформлением */
-.message-bubble strong {
-    color: #ff4d4d;
+.message .sender-name {
     font-weight: bold;
+    color: #b33939;
+    margin-bottom: 4px;
+    display: block;
 }
 
-/* Блок с вариантами выборов для игрока снизу */
+/* Выделение главного героя (ваше имя ярче, справа) */
+.message.hero-message {
+    background-color: #2b0c0c;
+    border-left: 3px solid #ff3333;
+    align-self: flex-end;
+}
+
+.message.hero-message .sender-name {
+    color: #ff6b6b;
+    text-shadow: 0 0 5px rgba(255, 77, 77, 0.5);
+}
+
+/* Системные сообщения / телефон (с эмодзи) */
+.message.system-msg {
+    background-color: #180707;
+    border-left: 3px solid #ffd700;
+    text-align: center;
+    max-width: 100%;
+    color: #ffd700;
+    font-style: italic;
+}
+
 .choices-container {
-    padding: 12px;
-    background-color: var(--chat-bg);
-    border-top: 2px solid var(--accent-red);
+    padding: 10px 15px;
+    background-color: #150606;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    border-top: 1px solid #3d0a0a;
 }
 
 .choice-btn {
-    background-color: #1a080d;
-    border: 1px solid var(--accent-red);
-    color: var(--text-color);
-    padding: 10px 14px;
+    background-color: #240a0a;
+    color: #f0f0f0;
+    border: 1px solid #661111;
+    padding: 10px 15px;
     border-radius: 6px;
     cursor: pointer;
     text-align: left;
     font-size: 13px;
-    transition: all 0.2s ease;
+    transition: all 0.2s;
 }
 
 .choice-btn:hover {
-    background-color: var(--accent-red);
-    color: #ffffff;
-    border-color: var(--bright-red);
+    background-color: #420f0f;
+    border-color: #ff3333;
+}
+
+.input-container {
+    padding: 12px 15px;
+    background-color: #150606;
+    display: flex;
+    gap: 10px;
+    border-top: 1px solid #3d0a0a;
+}
+
+.input-container.hidden {
+    display: none;
+}
+
+.input-container input {
+    flex: 1;
+    background-color: #0b0202;
+    border: 1px solid #661111;
+    border-radius: 6px;
+    padding: 10px;
+    color: #fff;
+    font-size: 14px;
+}
+
+.input-container input:focus {
+    outline: none;
+    border-color: #ff3333;
+}
+
+.input-container button {
+    background-color: #751010;
+    color: #fff;
+    border: none;
+    padding: 0 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.input-container button:hover {
+    background-color: #a31c1c;
 }

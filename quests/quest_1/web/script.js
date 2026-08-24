@@ -1,120 +1,116 @@
-// Инициализация Telegram Web App
-const tg = window.Telegram.WebApp;
-tg.expand();
-
-// Данные игрока (можно получить через Telegram initData или заглушку для теста)
-const player = {
-    name: "Игрок",
-    avatar: "https://via.placeholder.com/36/8b0000/ffffff?text=ME"
-};
-
-// База данных персонажей квеста
-const characters = {
-    "alister": {
-        name: "Алистер",
-        avatar: "https://via.placeholder.com/36/3d101d/ff1a1a?text=A"
-    },
-    "system": {
-        name: "🩸 Тьма",
-        avatar: "https://via.placeholder.com/36/000000/ff1a1a?text=!"
+// Инициализация Telegram WebApp с защитой от запуска в обычном браузере
+let heroName = "Тень";
+try {
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name) {
+        heroName = tg.initDataUnsafe.user.first_name;
     }
-};
-
-// Сценарий квеста (жесткая линия сюжета, ведущая к цели)
-const storyNodes = {
-    "start": {
-        messages: [
-            { sender: "alister", text: "<strong>Дверь за вашей спиной с тяжелым стуком захлопывается.</strong> Вспыхивает тусклый свет свечи." },
-            { sender: "alister", text: "Ну что, путник. Ты всё-таки переступил порог. Обратного пути больше нет." }
-        ],
-        choices: [
-            { text: "Спросить, кто он такой и где мы находимся.", next: "node_1" },
-            { text: "Попытаться дернуть за ручку закрытой двери.", next: "node_1" }
-        ]
-    },
-    "node_1": {
-        messages: [
-            { sender: "system", text: "<strong>Холодный сквознок проносит по коридору шёпот множества голосов.</strong>" },
-            { sender: "alister", name: "Алистер", text: "Бесполезно. Дом сам выбирает, кого впустить... и кого отпустить. Следуй за мной, если хочешь выжить." }
-        ],
-        choices: [
-            { text: "Молча пойти следом за Алистером.", next: "node_2" },
-            { text: "Отказаться и остаться на месте.", next: "node_2" } // Сюжет все равно вернет по сценарию
-        ]
-    },
-    "node_2": {
-        messages: [
-            { sender: "alister", text: "<strong>Шаги гулко отдаются в пустом коридоре. Тень впереди начинает принимать странную форму...</strong>" },
-            { sender: "alister", text: "Глава 1 завершена. Тьма запомнила твой выбор." }
-        ],
-        choices: []
-    }
-};
-
-// Функция отрисовки сообщения в чате
-function addMessage(senderKey, text, customName = null) {
-    const chatContainer = document.getElementById("chat-messages");
-    const char = characters[senderKey] || { name: customName || "Неизвестный", avatar: "https://via.placeholder.com/36" };
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "message-wrapper";
-
-    wrapper.innerHTML = `
-        <img src="${char.avatar}" class="avatar" alt="avatar">
-        <div class="message-content">
-            <span class="sender-name">💬 ${char.name}</span>
-            <div class="message-bubble">${text}</div>
-        </div>
-    `;
-
-    chatContainer.appendChild(wrapper);
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+} catch (e) {
+    console.log("Запущено вне Telegram, используется имя по умолчанию.");
 }
 
-// Функция показа вариантов выбора
-function showChoices(choices) {
-    const container = document.getElementById("choices-container");
-    container.innerHTML = "";
+const chatMessages = document.getElementById("chat-messages");
+const choicesContainer = document.getElementById("choices-container");
+const inputContainer = document.getElementById("input-container");
+const userInputField = document.getElementById("user-input-field");
+const sendBtn = document.getElementById("send-btn");
 
+function addMessage(sender, text, isHero = false, isSystem = false) {
+    const msgDiv = document.createElement("div");
+    msgDiv.classList.add("message");
+    
+    if (isHero) {
+        msgDiv.classList.add("hero-message");
+    } else if (isSystem) {
+        msgDiv.classList.add("system-msg");
+    }
+
+    if (sender) {
+        const senderSpan = document.createElement("span");
+        senderSpan.classList.add("sender-name");
+        senderSpan.textContent = sender;
+        msgDiv.appendChild(senderSpan);
+    }
+
+    const textP = document.createElement("div");
+    textP.innerHTML = text;
+    msgDiv.appendChild(textP);
+
+    chatMessages.appendChild(msgDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function clearChoices() {
+    choicesContainer.innerHTML = "";
+}
+
+function showChoices(choices) {
+    clearChoices();
     choices.forEach(choice => {
         const btn = document.createElement("button");
-        btn.className = "choice-btn";
-        btn.innerText = choice.text;
-        btn.onclick = () => {
-            // Игрок отправляет свой выбор как сообщение от себя
-            addMessage("player", `<strong>Выбор:</strong> ${choice.text}`, player.name);
-            // Переходим к следующему шагу сценария
-            loadNode(choice.next);
-        };
-        container.appendChild(btn);
+        btn.classList.add("choice-btn");
+        btn.textContent = choice.text;
+        btn.onclick = () => choice.action();
+        choicesContainer.appendChild(btn);
     });
 }
 
-// Загрузка узла сценария с задержкой для эффекта живого диалога
-function loadNode(nodeKey) {
-    document.getElementById("choices-container").innerHTML = "";
-    const node = storyNodes[nodeKey];
-    if (!node) return;
+// Старт сюжетной линии
+function startQuest() {
+    setTimeout(() => {
+        addMessage("Алистер", "Ты всё-таки пришёл... Дверь за тобой заперта. Обратной дороги нет.");
+    }, 600);
 
-    let delay = 300;
-    node.messages.forEach((msg, index) => {
+    setTimeout(() => {
+        addMessage("📱 Уведомление", "<i>Алистер печатает сообщение на разбитом смартфоне...</i>", false, true);
+    }, 2200);
+
+    setTimeout(() => {
+        addMessage("Алистер", "Возьми этот фонарь. Он понадобится, чтобы разогнать мрак в коридоре.");
+        
+        showChoices([
+            { text: "Взять фонарь и спросить, что здесь происходит", action: stepTwoOptions },
+            { text: "Оттолкнуть Алистера и попытаться выбить дверь", action: stepTwoForce }
+        ]);
+    }, 3800);
+}
+
+function stepTwoOptions() {
+    addMessage(heroName, "Взять фонарь и спросить, что здесь происходит.", true);
+    
+    setTimeout(() => {
+        addMessage("Вэл", "Глупец... Фонарь только привлечет их внимание.");
+        
         setTimeout(() => {
-            addMessage(msg.sender, msg.text, msg.name);
+            addMessage("Система", "Алистер смотрит на вас в упор. Что вы ему ответите?", false, true);
+            inputContainer.classList.remove("hidden");
             
-            // Если это последнее сообщение в узле, показываем кнопки выбора
-            if (index === node.messages.length - 1) {
-                setTimeout(() => showChoices(node.choices), 400);
-            }
-        }, delay);
-        delay += 1200; // Пауза между сообщениями персонажей
-    });
+            sendBtn.onclick = () => {
+                const userText = userInputField.value.trim();
+                if (userText) {
+                    addMessage(heroName, userText, true);
+                    userInputField.value = "";
+                    inputContainer.classList.add("hidden");
+                    
+                    setTimeout(() => {
+                        addMessage("Алистер", `Интересный ответ, ${heroName}... Посмотрим, как ты запоешь дальше.`);
+                    }, 1000);
+                }
+            };
+        }, 1500);
+    }, 1000);
 }
 
-// Старт мини-приложения
+function stepTwoForce() {
+    addMessage(heroName, "Оттолкнуть Алистера и попытаться выбить дверь.", true);
+    
+    setTimeout(() => {
+        addMessage("Алистер", "Дерево под твоими руками оказывается холодным и мягким, как плоть...");
+    }, 1000);
+}
+
+// Запуск при загрузке страницы
 window.onload = () => {
-    // Если игрок открыл из Telegram, подставим его реальное имя
-    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        player.name = tg.initDataUnsafe.user.first_name || "Игрок";
-    }
-    loadNode("start");
+    startQuest();
 };
