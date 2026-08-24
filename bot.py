@@ -98,7 +98,7 @@ async def quest_1_menu(callback: types.CallbackQuery, state: FSMContext):
                 inline_keyboard=[
                     [InlineKeyboardButton(text="📖 Как играть", callback_data="q1_how_to_play")],
                     [InlineKeyboardButton(text="👥 Ознакомиться с персонажами", callback_data="q1_char_0")],
-                    [InlineKeyboardButton(text="▶️ Продолжить / Запустить", callback_data="q1_launch")],
+                    [InlineKeyboardButton(text="→ продолжить", callback_data="q1_launch")],
                     [InlineKeyboardButton(text="🔙 К выбору квестов", callback_data="start_good")]
                 ]
             )
