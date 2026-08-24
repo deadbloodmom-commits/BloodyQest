@@ -59,8 +59,7 @@ async def process_good(callback: types.CallbackQuery):
 "Какую историю ты готов открыть?"
         "Выбери историю, в которую хочешь войти.\n\n"
         "<i>Некоторые истории пока молчат. "
-        "Но однажды они обязательно заговорят.</i>"
-        "🔒 Квест №2: (Закрыто)",
+        "Но однажды они обязательно заговорят.</i>",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
