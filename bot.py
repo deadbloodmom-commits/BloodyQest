@@ -22,10 +22,21 @@ class ProfileForm(StatesGroup):
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     welcome_text = (
-        "† ✞ ✦ <b>ШЁПОТ</b> ✦ ✞ †\n\n"
-        "<i>Ну что, душа моя.\n"
-        "Выбирай свой путь.)</i>\n\n"
-        "★ ∞ <i>Погружение во тьму начинается...</i>"
+        "<b>🩸 КРОВАВЫЙ ШЁПОТ</b>\n\n"
+        "Добро пожаловать…\n\n"
+        "Здесь начинается история, в которой не всё является тем, чем кажется.\n\n"
+        "🔎 Тебе предстоит искать улики, разгадывать загадки "
+        "и делать выбор, который может изменить ход событий.\n\n"
+        "Но будь осторожен(на).\n"
+        "Некоторые тайны лучше оставить нераскрытыми.\n\n"
+        "<b>🕯️ Небольшое предупреждение:</b>\n"
+        "Это horror-квест. Здесь могут встречаться пугающие сцены, "
+        "мрачная атмосфера и неожиданные моменты.\n\n"
+        "Создатель квеста не несёт ответственности за испуг, "
+        "мурашки и желание проверить, заперта ли дверь. 🔒\n\n"
+        "Ты готов(а) узнать, что скрывается во тьме…?\n\n"
+        "<i>И помни: иногда шёпот слышен только тем, "
+        "кто действительно слушает.</i> 🩸"
     )
     
     keyboard = InlineKeyboardMarkup(
@@ -39,8 +50,16 @@ async def cmd_start(message: types.Message):
 @dp.callback_query(F.data == "start_good")
 async def process_good(callback: types.CallbackQuery):
     await callback.message.edit_text(
-        "★ <b>Выбор квеста:</b> ★\n\n"
-        "† Квест №1: Пробуждение (Доступен) ✦\n"
+        "<b>🕯 КВЕСТЫ</b>\n\n"
+"Перед тобой — несколько историй.\n"
+"У каждой свой путь, свои тайны и то, что лучше было никогда не тревожить.\n\n"
+"Выбери ту, которая первой привлекла твоё внимание.\n"
+"Но помни: истории здесь не заканчиваются там, где заканчивается текст.\n\n"
+"Иногда выбор всего одной кнопки меняет всё.\n\n"
+"Какую историю ты готов открыть?"
+        "Выбери историю, в которую хочешь войти.\n\n"
+        "<i>Некоторые истории пока молчат. "
+        "Но однажды они обязательно заговорят.</i>"
         "🔒 Квест №2: (Закрыто)",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(
@@ -59,8 +78,13 @@ async def quest_1_menu(callback: types.CallbackQuery, state: FSMContext):
     
     if not user or not user["name"] or not user["gender"]:
         await callback.message.edit_text(
-            "<b>⚠️ Для начала игры нужно заполнить твою анкету.</b>\n\n"
-            "Как тебя зовут?",
+
+        "<b>Ты ознакомился(ась) со всеми персонажами.</b>\n\n"
+        "Теперь пришло время познакомиться с тобой.\n\n"
+        "<i>В этой истории у тебя будет своё место.</i>\n\n"
+        "<b>🩸Как тебя будут называть?</b>\n\n"
+        "Напиши имя, которым ты хочешь, "
+        "чтобы тебя называли во время прохождения.",
             parse_mode="HTML"
         )
         await state.set_state(ProfileForm.waiting_for_name)
@@ -95,7 +119,8 @@ async def process_name(message: types.Message, state: FSMContext):
     )
     
     await message.answer(
-        "✞ <b>Выбери свой пол:</b> ✞",
+        "✞ Выбери свой пол, вариант, который будет использовать "
+        "бот во время истории.✞",
         parse_mode="HTML",
         reply_markup=keyboard
     )
@@ -112,8 +137,11 @@ async def process_gender(callback: types.CallbackQuery, state: FSMContext):
     await state.update_data(gender=selected_gender)
     
     await callback.message.edit_text(
-        "<b>★ 🪞 Опиши свою внешность:</b>\n"
-        "<i>(Отправь текст описания в ответном сообщении)</i>",
+        "<b>🩸Теперь расскажи о своей внешности.</b>\n\n"
+        "Опиши себя так, как хочешь выглядеть "
+        "внутри этой истории.\n\n"
+        "<i>Например: волосы, глаза, одежда "
+        "или другие особенности.</i>",
         parse_mode="HTML"
     )
     await state.set_state(ProfileForm.waiting_for_appearance)
@@ -124,8 +152,11 @@ async def process_appearance(message: types.Message, state: FSMContext):
     await state.update_data(appearance=message.text)
     
     await message.answer(
-        "<b>★ 🖤 Опиши свой характер:</b>\n"
-        "<i>Какая ты тень в этом заброшенном мире?</i>",
+        "<b>🩸А теперь — характер.</b>\n\n"
+        "Каким человеком ты хочешь быть "
+        "в этой истории?\n\n"
+        "<i>Спокойным, осторожным, смелым, "
+        "молчаливым, любопытным или совершенно другим.</i>",
         parse_mode="HTML"
     )
     await state.set_state(ProfileForm.waiting_for_personality)
